@@ -1,0 +1,64 @@
+:root {
+  --bg-main: #0f1115;
+  --bg-panel: rgba(25, 28, 36, 0.7);
+  --bg-panel-solid: #191c24;
+  --bg-panel-hover: rgba(40, 44, 56, 0.8);
+  
+  --primary-color: #fca311; /* Laranja/Dourado original */
+  --primary-hover: #e08e0b;
+  --accent-blue: #00b4d8;   /* Azul vibrante que você gostou */
+  --secondary-color: #14213d;
+  
+  --text-main: #e2e8f0;
+  --text-muted: #94a3b8;
+  
+  --danger-color: #ef4444; /* For Mute buttons */
+  --warning-color: #eab308; /* For Solo buttons */
+  --success-color: #22c55e;
+  
+  --border-color: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow: hidden; /* Tablet app feel, no body scroll */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  background: var(--bg-panel);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: 16px;
+}
+
+/* Custom Scrollbar for Mixer */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-panel-hover);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
