@@ -127,7 +127,10 @@ function MixerView({ song, onBack }) {
           for (const entry of files) {
             if (entry.isFile) {
               const name = entry.name.toLowerCase();
-              const fileUrl = encodeURI(`/${songData.path}/${entry.name}`);
+              // Limpeza de URL mais robusta para lidar com espaços e caracteres especiais
+              const pathParts = songData.path.split('/').map(encodeURIComponent);
+              const fileNameEncoded = encodeURIComponent(entry.name);
+              const fileUrl = `/${pathParts.join('/')}/${fileNameEncoded}`;
               
               if (name.endsWith('.mp4') || name.endsWith('.webm') || name.endsWith('.mov')) {
                 videoUrl = fileUrl;
@@ -438,8 +441,8 @@ function MixerView({ song, onBack }) {
           <div style={{ width: '100%', height: '100%', display: activeMedia === 'pdf' ? 'block' : 'none' }}>
             {pdfFile ? (
               <iframe 
-                src={`${pdfFile}#toolbar=0&navpanes=0&scrollbar=0`}
-                style={{ width: '100%', height: '100%', border: 'none', backgroundColor: '#fff' }}
+                src={`${pdfFile}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                style={{ width: '100%', height: '100%', border: 'none', backgroundColor: '#fff', display: 'block' }}
                 title="Partitura"
               />
             ) : (
