@@ -67,7 +67,6 @@ function TrackItem({ track, isPlaying, onEnded, onLoaded, onRef, isSoloed, isAny
   // Atualiza volume e mute no elemento de áudio
   useEffect(() => {
     if (audioRef.current) {
-      // O volume final é a multiplicação do Volume da Track pelo Volume Master
       audioRef.current.volume = volume * masterVolume;
       audioRef.current.muted = effectiveMute;
     }
@@ -84,31 +83,38 @@ function TrackItem({ track, isPlaying, onEnded, onLoaded, onRef, isSoloed, isAny
         <span className="track-name">{displayName}</span>
       </div>
 
-      <div className="track-controls">
-        <button 
-          className={`btn-mute ${isMuted ? 'active' : ''}`}
-          onClick={() => setIsMuted(!isMuted)}
-        >
-          M
-        </button>
-        <button 
-          className={`btn-solo ${isSoloed ? 'active' : ''}`}
-          onClick={onToggleSolo}
-        >
-          S
-        </button>
-      </div>
-
-      <div className="track-fader">
-        <input 
-          type="range" 
-          min="0" 
-          max="1" 
-          step="0.01" 
-          value={volume}
-          onChange={(e) => setVolume(parseFloat(e.target.value))}
-          className="fader-slider"
-        />
+      <div className="track-controls-radio">
+        <div className="buttons-stack">
+          <button 
+            className={`btn-mute-mini ${isMuted ? 'active' : ''}`}
+            onClick={() => setIsMuted(!isMuted)}
+          >
+            M
+          </button>
+          <button 
+            className={`btn-solo-mini ${isSoloed ? 'active' : ''}`}
+            onClick={onToggleSolo}
+          >
+            S
+          </button>
+        </div>
+        
+        <div className="fader-vertical-stack">
+          <span className="track-vol-tag">VOL</span>
+          <input 
+            type="range" 
+            min="0" 
+            max="1" 
+            step="0.01" 
+            value={volume}
+            onChange={(e) => setVolume(parseFloat(e.target.value))}
+            className="fader-vertical-radio"
+            style={{
+              background: `linear-gradient(to right, var(--accent-blue) ${volume * 100}%, rgba(255,255,255,0.1) ${volume * 100}%)`
+            }}
+          />
+          <span className="track-vol-label-radio">{(volume * 100).toFixed(0)}%</span>
+        </div>
       </div>
     </div>
   );

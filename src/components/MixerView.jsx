@@ -26,11 +26,17 @@ function MixerView({ song, onBack }) {
     const master = videoRef.current || audioRefs.current[0];
     if (!master) return;
     const time = master.currentTime;
+    
+    // Sincroniza o tempo
     if (videoRef.current && videoRef.current !== master) {
-      videoRef.current.currentTime = time;
+      if (Math.abs(videoRef.current.currentTime - time) > 0.1) {
+        videoRef.current.currentTime = time;
+      }
     }
+
     audioRefs.current.forEach(el => {
-      if (Math.abs(el.currentTime - time) > 0.15) {
+      // Sincroniza o tempo se o drift for maior que 0.1s
+      if (Math.abs(el.currentTime - time) > 0.1) {
         el.currentTime = time;
       }
     });
@@ -190,6 +196,8 @@ function MixerView({ song, onBack }) {
           if (master.duration && duration === 0) {
             setDuration(master.duration);
           }
+          // Vigia a sincronia a cada 200ms
+          syncAllToMaster();
         }
       }, 200);
     }
@@ -237,7 +245,7 @@ function MixerView({ song, onBack }) {
         videoRef.current.play().catch(err => console.log('Video play error:', err));
       }
 
-      // 3. Sincroniza e dá play em TODOS os áudios diretamente (evita atraso do useEffect)
+      // 3. Sincroniza e dá play em TODOS os áudios diretamente
       audioRefs.current.forEach(el => {
         el.currentTime = currentMasterTime;
         el.play().catch(e => console.log('Audio play error:', e));
@@ -377,7 +385,7 @@ function MixerView({ song, onBack }) {
             </div>
 
             <div className="control-row">
-              <span className="control-label">TIME</span>
+              <span className="control-label">TEMPO</span>
               <input 
                 type="range" 
                 className="horizontal-slider"
@@ -387,7 +395,7 @@ function MixerView({ song, onBack }) {
                 value={currentTime}
                 onChange={handleSeek}
               />
-              <span className="control-value time-font">{formatTime(currentTime)}</span>
+              <span className="control-value time-font">{formatTime(currentTime)} / {formatTime(duration)}</span>
             </div>
           </div>
 

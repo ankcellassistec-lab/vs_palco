@@ -8,7 +8,9 @@
 
 .track-info {
   flex: 1;
-  min-width: 120px;
+  min-width: 80px;
+  max-width: 100px;
+  overflow: hidden;
 }
 
 .track-name {
@@ -19,60 +21,89 @@
   letter-spacing: 1px;
 }
 
-.track-controls {
+.track-controls-radio {
   display: flex;
-  gap: 8px;
-  margin: 0 15px;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
 }
 
-.btn-mute, .btn-solo {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+.buttons-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.btn-mute-mini, .btn-solo-mini {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
   border: 1px solid var(--border-color);
   background: rgba(255, 255, 255, 0.05);
   color: white;
+  font-size: 0.8rem;
   font-weight: bold;
   cursor: pointer;
-  transition: all 0.2s;
 }
 
-.btn-mute.active {
+.btn-mute-mini.active {
   background: var(--danger-color);
-  border-color: var(--danger-color);
 }
-
-.btn-solo:hover {
-  background: rgba(234, 179, 8, 0.3); /* warning hover */
-}
-.btn-solo.active {
+.btn-solo-mini.active {
   background: var(--warning-color);
-  border-color: var(--warning-color);
   color: black;
 }
 
-.track-fader {
-  width: 150px;
+.fader-vertical-stack {
   display: flex;
+  flex-direction: column;
   align-items: center;
+  gap: 0;
+  width: 40px;
+  height: 68px; /* Altura total dos dois botões + gap */
+  justify-content: center;
+  position: relative;
 }
 
-.fader-slider {
+.fader-vertical-radio {
   -webkit-appearance: none;
-  width: 100%;
-  height: 6px;
-  background: #333;
-  border-radius: 3px;
+  width: 55px; /* Altura real do fader */
+  height: 4px;
+  border-radius: 2px;
+  background: #222;
   outline: none;
+  cursor: pointer;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  margin-bottom: 5px;
 }
 
-.fader-slider::-webkit-slider-thumb {
+.fader-vertical-radio::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 30px;
-  border-radius: 4px;
-  background: var(--primary-color);
+  width: 10px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--accent-blue);
   cursor: pointer;
-  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  border: 1px solid #fff;
+}
+
+.track-vol-tag {
+  font-size: 0.55rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.4);
+  font-family: monospace;
+  position: absolute;
+  top: -12px;
+  letter-spacing: 1px;
+}
+
+.track-vol-label-radio {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: var(--accent-blue);
+  font-family: monospace;
+  position: absolute;
+  bottom: -12px;
 }
