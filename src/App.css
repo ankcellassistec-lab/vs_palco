@@ -168,6 +168,7 @@
 }
 
 /* Cabeçalho Fixo Ultra-Compacto */
+.mixer-header-fixed {
   height: 0;
   display: none;
 }
