@@ -54,6 +54,16 @@ function LibraryView({ onSelectSong }) {
   };
 
   const handleSelectFolder = async (folderName, folderPath, handle = null) => {
+    // FALLBACK PARA VERCEL: Se clicar em "Modão Sertanejo" sem ter aberto pasta local
+    if (!rootHandle && !handle && folderPath === 'vs/modao_sertanejo') {
+      onSelectSong({ 
+        name: 'Bijuteria - Bruno e Marrone', 
+        path: 'vs/modao_sertanejo/bruno_e_marrone/Bijuteria -  Tom - Am',
+        isFileSystem: false 
+      });
+      return;
+    }
+
     // Se temos um handle, estamos no modo FileSystem (Navegador/Vercel)
     if (handle || rootHandle) {
       const targetHandle = handle || currentHandle;

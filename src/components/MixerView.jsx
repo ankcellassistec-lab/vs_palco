@@ -77,26 +77,65 @@ function MixerView({ song, onBack }) {
           }
         }
       } 
-      // MODO ANTIGO: Servidor Local (Node.js)
+      // MODO ANTIGO: Servidor Local (Node.js) ou Fallback para Músicas na pasta Public
       else if (songData.path) {
-        const response = await fetch(`/api/local-dir?path=${songData.path}`);
-        if (!response.ok) {
-          console.error("Erro ao carregar arquivos da música");
-          return;
-        }
-        const files = await response.json();
+        let files = null;
         
-        for (const entry of files) {
-          if (entry.isFile) {
-            const name = entry.name.toLowerCase();
-            const fileUrl = encodeURI(`/${songData.path}/${entry.name}`);
-            
-            if (name.endsWith('.mp4') || name.endsWith('.webm') || name.endsWith('.mov')) {
-              videoUrl = fileUrl;
-            } else if (name.endsWith('.pdf')) {
-              pdfUrl = fileUrl;
-            } else if (name.endsWith('.wav') || name.endsWith('.mp3') || name.endsWith('.ogg')) {
-              trackList.push({ name: entry.name, url: fileUrl });
+        // Tenta primeiro o servidor local (se estiver rodando no seu PC)
+        try {
+          const response = await fetch(`/api/local-dir?path=${songData.path}`);
+          if (response.ok) {
+            files = await response.json();
+          }
+        } catch (e) {
+          // No Vercel, o fetch vai falhar, então usamos o fallback abaixo
+        }
+
+        // FALLBACK PARA VERCEL (Se o servidor local não responder)
+        if (!files && songData.name.includes('Bijuteria')) {
+          files = [
+            { name: 'BASS - .mp3', isFile: true },
+            { name: 'BIJUTERIA VIDEO.mp4', isFile: true },
+            { name: 'Bijuteria - Bruno e Marrone.pdf', isFile: true },
+            { name: 'CLICK 72 - .mp3', isFile: true },
+            { name: 'CONGAS -.mp3', isFile: true },
+            { name: 'DRUMS - .mp3', isFile: true },
+            { name: 'EP - .mp3', isFile: true },
+            { name: 'HH -  .mp3', isFile: true },
+            { name: 'KICK - .mp3', isFile: true },
+            { name: 'OVER - .mp3', isFile: true },
+            { name: 'PAD .mp3', isFile: true },
+            { name: 'PANDEROLA 01 -.mp3', isFile: true },
+            { name: 'PANDEROLA 02 - .mp3', isFile: true },
+            { name: 'PIANO - .mp3', isFile: true },
+            { name: 'ROOM -.mp3', isFile: true },
+            { name: 'SHAKER - .mp3', isFile: true },
+            { name: 'SNARE - .mp3', isFile: true },
+            { name: 'TONS - .mp3', isFile: true },
+            { name: 'VIOLAO 01 LINE - .mp3', isFile: true },
+            { name: 'VIOLAO 01 MIC - .mp3', isFile: true },
+            { name: 'VIOLAO 01 MIX - .mp3', isFile: true },
+            { name: 'VIOLAO 02 LINE -.mp3', isFile: true },
+            { name: 'VIOLAO 02 MIC - .mp3', isFile: true },
+            { name: 'VIOLAO 02 MIX -.mp3', isFile: true },
+            { name: 'VIOLAO SOLO MIC - .mp3', isFile: true },
+            { name: 'VIOLAO SOLO MIX - .mp3', isFile: true }
+          ];
+        }
+
+        if (files) {
+          for (const entry of files) {
+            if (entry.isFile) {
+              const name = entry.name.toLowerCase();
+              const fileUrl = encodeURI(`/${songData.path}/${entry.name}`);
+              
+              if (name.endsWith('.mp4') || name.endsWith('.webm') || name.endsWith('.mov')) {
+                videoUrl = fileUrl;
+              } else if (name.endsWith('.pdf')) {
+                pdfUrl = fileUrl;
+              } else if (name.endsWith('.wav') || name.endsWith('.mp3') || name.endsWith('.ogg')) {
+                trackList.push({ name: entry.name, url: fileUrl });
+              }
             }
           }
         }
