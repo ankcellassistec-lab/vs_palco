@@ -449,7 +449,9 @@ function MixerView({ song, onBack }) {
           <div style={{ width: '100%', height: '100%', display: activeMedia === 'pdf' ? 'block' : 'none' }}>
             {pdfFile ? (
               <iframe 
-                src={`${pdfFile}#toolbar=0&navpanes=0&scrollbar=0&view=Fit`}
+                src={pdfFile.startsWith('blob:') 
+                  ? `${pdfFile}#toolbar=0&navpanes=0&scrollbar=0&view=Fit` 
+                  : `https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + pdfFile)}&embedded=true`}
                 style={{ width: '100%', height: '100%', border: 'none', backgroundColor: '#fff', display: 'block' }}
                 title="Partitura"
               />
