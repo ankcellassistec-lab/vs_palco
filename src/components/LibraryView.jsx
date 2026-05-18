@@ -209,17 +209,27 @@ function LibraryView({ onSelectSong }) {
               Palco VS
             </h1>
             
-            <label className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-              <span style={{ fontSize: '1.4rem' }}>📂</span> Abrir Minha Pasta
+            <div style={{ position: 'relative', display: 'inline-block', overflow: 'hidden' }}>
+              <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', pointerEvents: 'none' }}>
+                <span style={{ fontSize: '1.4rem' }}>📂</span> Abrir Minha Pasta
+              </button>
               <input 
                 type="file" 
                 webkitdirectory="true" 
                 directory="true" 
                 multiple 
                 onChange={handleOpenDirectoryInput} 
-                style={{ display: 'none' }} 
+                style={{ 
+                  position: 'absolute', 
+                  top: 0, 
+                  left: 0, 
+                  width: '100%', 
+                  height: '100%', 
+                  opacity: 0, 
+                  cursor: 'pointer' 
+                }} 
               />
-            </label>
+            </div>
           </div>
         )}
         {currentPath && (
