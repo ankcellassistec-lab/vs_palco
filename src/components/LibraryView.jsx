@@ -1,24 +1,6 @@
 import { useState } from 'react';
 
-// Lista de Estilos fixada para a Tela Inicial sempre abrir bonita!
-// As imagens devem ser colocadas na pasta public/images/ do projeto.
-const MOCK_GENRES = [
-  { name: 'Sertanejo Atualizado',  path: 'vs/sertanejo_atualizados', coverUrl: '/images/sertanejo_atualizados.avif' },
-  { name: 'Modão Sertanejo',       path: 'vs/modao_sertanejo',       coverUrl: '/images/modao_sertaneo.avif' },
-  { name: 'Pagode & Samba',        path: 'vs/pagode_e_samba',        coverUrl: '/images/pagode_e_samba.avif' },
-  { name: 'Forró Atualizado',      path: 'vs/forro_atualizados',     coverUrl: '/images/forro_atualizados.avif' },
-  { name: 'Forró das Antigas',     path: 'vs/forro_das_antigas',     coverUrl: '/images/forro_das_antigas.avif' },
-  { name: 'Forró Pé de Serra',     path: 'vs/forro_pe_de_serra',     coverUrl: '/images/forro_pe_de_serra.avif' },
-  { name: 'Piseiro',               path: 'vs/piseiro',               coverUrl: '/images/piseiro.avif' },
-  { name: 'Arrocha & Seresta',     path: 'vs/arrocha_e_seresta',     coverUrl: '/images/arrocha_e_seresta.avif' },
-  { name: 'Pop Rock',              path: 'vs/pop_rock',              coverUrl: '/images/pop_rock.avif' },
-  { name: 'Axé / Swingueira',      path: 'vs/axe',                   coverUrl: '/images/axe.avif' },
-  { name: 'Funk',                  path: 'vs/funk',                  coverUrl: '/images/funk.avif' },
-  { name: 'Internacional',         path: 'vs/internacional',         coverUrl: '/images/internacional.avif' },
-  { name: 'MPB',                   path: 'vs/mpb',                   coverUrl: '/images/mpb.avif' },
-  { name: 'Gospel',                path: 'vs/gospel',                coverUrl: '/images/gospel.avif' },
-  { name: 'Católico',              path: 'vs/catolico',              coverUrl: '/images/catolico.avif' },
-];
+
 
 
 function LibraryView({ onSelectSong }) {
@@ -201,37 +183,8 @@ function LibraryView({ onSelectSong }) {
   };
 
   return (
-    <div className="library-container">
-      <div className="header-bar">
-        {!currentPath && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '1.5rem' }}>
-            <h1 className="title" style={{ margin: 0, fontSize: '2.2rem', fontWeight: '900' }}>
-              Palco VS
-            </h1>
-            
-            <div style={{ position: 'relative', display: 'inline-block', overflow: 'hidden' }}>
-              <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', pointerEvents: 'none' }}>
-                <span style={{ fontSize: '1.4rem' }}>📂</span> Abrir Minha Pasta
-              </button>
-              <input 
-                type="file" 
-                webkitdirectory="true" 
-                directory="true" 
-                multiple 
-                onChange={handleOpenDirectoryInput} 
-                style={{ 
-                  position: 'absolute', 
-                  top: 0, 
-                  left: 0, 
-                  width: '100%', 
-                  height: '100%', 
-                  opacity: 0, 
-                  cursor: 'pointer' 
-                }} 
-              />
-            </div>
-          </div>
-        )}
+    <div className="library-container" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div className="header-bar" style={!currentPath ? { display: 'none' } : {}}>
         {currentPath && (
           <h1 className="title" style={{ fontSize: '1.8rem', color: '#fff' }}>
             {`Explorando: ${currentName}`}
@@ -250,22 +203,53 @@ function LibraryView({ onSelectSong }) {
       </div>
 
       {!currentPath ? (
-        <div className="folders-grid">
-          {MOCK_GENRES.map(genre => (
-            <div 
-              key={genre.name} 
-              className="style-card" 
-              onClick={() => handleSelectFolder(genre.name, genre.path)}
-              style={!genre.coverUrl ? { background: 'linear-gradient(45deg, var(--secondary-color), var(--primary-color))' } : {}}
-            >
-              {genre.coverUrl && (
-                <img 
-                  src={genre.coverUrl} 
-                  alt={genre.name} 
-                />
-              )}
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          flex: 1,
+          textAlign: 'center',
+          gap: '2rem'
+        }}>
+          <div>
+            <h1 className="title" style={{ margin: 0, fontSize: '3.5rem', fontWeight: '900', background: 'linear-gradient(45deg, #00f2fe, #4facfe)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.3))' }}>
+              Palco VS
+            </h1>
+            <p style={{ color: '#aaa', fontSize: '1.2rem', marginTop: '0.5rem' }}>Selecione a pasta com seus repertórios e playbacks</p>
+          </div>
+          
+          <div style={{ position: 'relative', display: 'inline-block', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.2s ease' }}
+               onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+               onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+            
+            <img 
+              src="/images/open_folder_icon.png" 
+              alt="Abrir Pasta" 
+              style={{ width: '250px', height: '250px', objectFit: 'contain', filter: 'drop-shadow(0px 10px 20px rgba(0,0,0,0.5))' }} 
+            />
+            
+            <div style={{ marginTop: '1rem', fontSize: '1.4rem', fontWeight: 'bold', color: '#fff' }}>
+              Abrir Arquivos
             </div>
-          ))}
+
+            <input 
+              type="file" 
+              webkitdirectory="true" 
+              directory="true" 
+              multiple 
+              onChange={handleOpenDirectoryInput} 
+              style={{ 
+                position: 'absolute', 
+                top: 0, 
+                left: 0, 
+                width: '100%', 
+                height: '100%', 
+                opacity: 0, 
+                cursor: 'pointer' 
+              }} 
+            />
+          </div>
         </div>
       ) : (
         <div className="folders-grid" style={{ flexWrap: 'wrap' }}>
