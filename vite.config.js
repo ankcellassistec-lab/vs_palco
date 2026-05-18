@@ -86,8 +86,8 @@ export default defineConfig({
         ]
       },
       workbox: {
-        // Cache dos assets estáticos do app (JS, CSS, HTML)
-        globPatterns: ['**/*.{js,css,html,ico,svg,png,avif,webp}'],
+        // Cache dos assets estáticos do app (JS, MJS, CSS, HTML)
+        globPatterns: ['**/*.{js,mjs,css,html,ico,svg,png,avif,webp,woff,woff2,ttf}'],
         // Estratégia: tenta rede primeiro, cai no cache se offline
         runtimeCaching: [
           {
