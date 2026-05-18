@@ -37,19 +37,37 @@ function MixerView({ song, onBack }) {
     if (!master) return;
     const time = master.currentTime;
 
-    // Sincroniza o vídeo se não for o mestre
-    if (videoRef.current && videoRef.current !== master) {
-      if (Math.abs(videoRef.current.currentTime - time) > 0.08) {
-        videoRef.current.currentTime = time;
+    // Função interna para sincronizar suavemente (evita stutter no Android)
+    const smoothSync = (el) => {
+      const diff = el.currentTime - time;
+      
+      // Se a diferença for muito grande (> 300ms), força o pulo (seek)
+      if (Math.abs(diff) > 0.3) {
+        el.currentTime = time;
+      } 
+      // Se estiver atrasado, acelera levemente
+      else if (diff < -0.08) {
+        el.playbackRate = 1.05; // 5% mais rápido
+      } else if (diff < -0.03) {
+        el.playbackRate = 1.02; // 2% mais rápido
+      } 
+      // Se estiver adiantado, desacelera levemente
+      else if (diff > 0.08) {
+        el.playbackRate = 0.95;
+      } else if (diff > 0.03) {
+        el.playbackRate = 0.98;
+      } 
+      // Se estiver dentro da margem de 30ms, deixa normal
+      else {
+        el.playbackRate = 1.0;
       }
+    };
+
+    if (videoRef.current && videoRef.current !== master) {
+      smoothSync(videoRef.current);
     }
 
-    // Sincroniza cada faixa de áudio
-    audioRefs.current.forEach(el => {
-      if (Math.abs(el.currentTime - time) > 0.08) {
-        el.currentTime = time;
-      }
-    });
+    audioRefs.current.forEach(el => smoothSync(el));
   }, []); // refs são mutáveis, não precisam ser dependência
 
   useEffect(() => {
