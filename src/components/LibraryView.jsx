@@ -28,43 +28,73 @@ function LibraryView({ onSelectSong }) {
   const [rootHandle, setRootHandle] = useState(null); // Handle da pasta raiz selecionada
   const [currentHandle, setCurrentHandle] = useState(null); // Handle da pasta atual
 
-  // Nova função para abrir pasta via Navegador (FileSystem API)
-  const handleOpenDirectory = async () => {
-    try {
-      const handle = await window.showDirectoryPicker();
-      setRootHandle(handle);
-      setCurrentHandle(handle);
-      setCurrentName(handle.name);
-      setCurrentPath('root'); // Marcador para modo FileSystem
-      
-      const list = [];
-      for await (const entry of handle.values()) {
-        list.push({ 
-          name: entry.name, 
-          path: entry.name, 
-          handle: entry,
-          isDirectory: entry.kind === 'directory',
-          isFile: entry.kind === 'file'
-        });
-      }
-      setItems(list.sort((a, b) => a.isDirectory === b.isDirectory ? a.name.localeCompare(b.name) : b.isDirectory ? 1 : -1));
-    } catch (err) {
-      console.error('Acesso à pasta negado ou erro:', err);
-    }
-  };
+  const [rawFiles, setRawFiles] = useState([]);
+  const [currentVirtualPath, setCurrentVirtualPath] = useState(null);
 
-  const handleSelectFolder = async (folderName, folderPath, handle = null) => {
-    // FALLBACK PARA VERCEL: Se clicar em "Modão Sertanejo" sem ter aberto pasta local
-    if (!rootHandle && !handle && folderPath === 'vs/modao_sertanejo') {
-      onSelectSong({ 
-        name: 'Bijuteria - Bruno e Marrone', 
-        path: 'vs/modao_sertanejo/bruno_e_marrone/Bijuteria -  Tom - Am',
-        isFileSystem: false 
-      });
+  // MODO VIRTUAL: Compatível com Android (webkitdirectory)
+  const updateVirtualView = (targetPath, allFiles) => {
+    const folderMap = new Map();
+    const audioFiles = [];
+    const targetDepth = targetPath.split('/').length;
+
+    for (const file of allFiles) {
+      // file.webkitRelativePath ex: "Repertorio/Musica 1/Bass.wav"
+      if (file.webkitRelativePath.startsWith(targetPath + '/')) {
+        const parts = file.webkitRelativePath.split('/');
+        
+        if (parts.length > targetDepth + 1) {
+          // É uma subpasta
+          const folderName = parts[targetDepth];
+          const folderVirtualPath = targetPath + '/' + folderName;
+          if (!folderMap.has(folderName)) {
+            folderMap.set(folderName, {
+              name: folderName,
+              path: folderVirtualPath,
+              isDirectory: true,
+              isVirtual: true
+            });
+          }
+        } else {
+          // É um arquivo nesta pasta
+          const name = file.name.toLowerCase();
+          if (name.endsWith('.mp3') || name.endsWith('.wav') || name.endsWith('.ogg') || name.endsWith('.mp4') || name.endsWith('.pdf')) {
+            audioFiles.push(file);
+          }
+        }
+      }
+    }
+
+    const folderList = Array.from(folderMap.values());
+
+    // Se achou áudios e não tem subpastas, é a música!
+    if (folderList.length === 0 && audioFiles.length > 0) {
+      const folderName = targetPath.split('/').pop();
+      onSelectSong({ name: folderName, files: audioFiles, isVirtualSystem: true });
       return;
     }
 
-    // Se temos um handle, estamos no modo FileSystem (Navegador/Vercel)
+    setCurrentVirtualPath(targetPath);
+    setCurrentName(targetPath.split('/').pop());
+    setCurrentPath('virtual'); // Flag
+    setItems(folderList.sort((a, b) => a.name.localeCompare(b.name)));
+  };
+
+  const handleOpenDirectoryInput = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    const rootFolderName = files[0].webkitRelativePath.split('/')[0];
+    updateVirtualView(rootFolderName, files);
+  };
+
+  const handleSelectFolder = async (folderName, folderPath, handle = null, isVirtual = false) => {
+    // Modo Virtual (Android webkitdirectory)
+    if (isVirtual || currentPath === 'virtual') {
+      updateVirtualView(folderPath, rawFiles);
+      return;
+    }
+
+    // Se temos um handle, estamos no modo FileSystem (Navegador Desktop)
     if (handle || rootHandle) {
       const targetHandle = handle || currentHandle;
       
@@ -134,6 +164,22 @@ function LibraryView({ onSelectSong }) {
 
   const handleBack = () => {
     if (!currentPath) return;
+
+    // Lógica de Voltar no Modo Virtual (Android)
+    if (currentPath === 'virtual') {
+      const parts = currentVirtualPath.split('/');
+      if (parts.length <= 1) {
+        // Voltou para a raiz, limpa tudo
+        setCurrentPath(null);
+        setCurrentVirtualPath(null);
+        setRawFiles([]);
+        setItems([]);
+      } else {
+        parts.pop();
+        updateVirtualView(parts.join('/'), rawFiles);
+      }
+      return;
+    }
     
     // Exemplo: currentPath = "vs/modao_sertanejo/bruno_e_marrone"
     const parts = currentPath.split('/');
@@ -162,9 +208,18 @@ function LibraryView({ onSelectSong }) {
             <h1 className="title" style={{ margin: 0, fontSize: '2.2rem', fontWeight: '900' }}>
               Palco VS
             </h1>
-            <button className="btn-primary" onClick={handleOpenDirectory} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            
+            <label className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
               <span style={{ fontSize: '1.4rem' }}>📂</span> Abrir Minha Pasta
-            </button>
+              <input 
+                type="file" 
+                webkitdirectory="true" 
+                directory="true" 
+                multiple 
+                onChange={handleOpenDirectoryInput} 
+                style={{ display: 'none' }} 
+              />
+            </label>
           </div>
         )}
         {currentPath && (
@@ -210,7 +265,7 @@ function LibraryView({ onSelectSong }) {
             </div>
           )}
           {items.map(folder => (
-            <div key={folder.name} className="folder-card" onClick={() => handleSelectFolder(folder.name, folder.path, folder.handle)}>
+            <div key={folder.name} className="folder-card" onClick={() => handleSelectFolder(folder.name, folder.path, folder.handle, folder.isVirtual)}>
               <div className="folder-icon">{folder.isDirectory ? '📂' : '🎵'}</div>
               <div className="folder-name">{folder.name}</div>
             </div>

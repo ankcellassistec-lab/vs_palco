@@ -1,5 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import TrackItem from './TrackItem';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString();
 
 function MixerView({ song, onBack }) {
   const [tracks, setTracks] = useState([]);
@@ -20,33 +28,35 @@ function MixerView({ song, onBack }) {
   const [isMixerVisible, setIsMixerVisible] = useState(true);
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
+  const [numPdfPages, setNumPdfPages] = useState(null);
 
   // Sincroniza todos os áudios e vídeo ao tempo do mestre
-  const syncAllToMaster = () => {
+  // useCallback garante que a referência é sempre a mais atual (sem stale closure)
+  const syncAllToMaster = useCallback(() => {
     const master = videoRef.current || audioRefs.current[0];
     if (!master) return;
     const time = master.currentTime;
-    
-    // Sincroniza o tempo
+
+    // Sincroniza o vídeo se não for o mestre
     if (videoRef.current && videoRef.current !== master) {
-      if (Math.abs(videoRef.current.currentTime - time) > 0.1) {
+      if (Math.abs(videoRef.current.currentTime - time) > 0.08) {
         videoRef.current.currentTime = time;
       }
     }
 
+    // Sincroniza cada faixa de áudio
     audioRefs.current.forEach(el => {
-      // Sincroniza o tempo se o drift for maior que 0.1s
-      if (Math.abs(el.currentTime - time) > 0.1) {
+      if (Math.abs(el.currentTime - time) > 0.08) {
         el.currentTime = time;
       }
     });
-  };
+  }, []); // refs são mutáveis, não precisam ser dependência
 
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
-      // Resincrona após mudança de tela cheia (browser pode atrasar elementos ocultos)
-      setTimeout(() => syncAllToMaster(), 150);
+      // Resincrona após mudança de tela cheia com delay para o browser reativar elementos
+      setTimeout(() => syncAllToMaster(), 200);
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
 
@@ -55,7 +65,7 @@ function MixerView({ song, onBack }) {
     }
 
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, [song]);
+  }, [song, syncAllToMaster]);
 
   const loadSongFiles = async (songData) => {
     setIsLoading(true);
@@ -65,21 +75,18 @@ function MixerView({ song, onBack }) {
       let videoUrl = null;
       let pdfUrl = null;
 
-      // MODO NOVO: File System Access API (Navegador/Vercel)
-      if (songData.isFileSystem && songData.handle) {
-        for await (const entry of songData.handle.values()) {
-          if (entry.kind === 'file') {
-            const file = await entry.getFile();
-            const name = entry.name.toLowerCase();
-            const url = URL.createObjectURL(file);
+      // MODO VIRTUAL: File Input (Compatível com Android)
+      if (songData.isVirtualSystem && songData.files) {
+        for (const file of songData.files) {
+          const name = file.name.toLowerCase();
+          const url = URL.createObjectURL(file);
 
-            if (name.endsWith('.mp4') || name.endsWith('.webm') || name.endsWith('.mov')) {
-              videoUrl = url;
-            } else if (name.endsWith('.pdf')) {
-              pdfUrl = url;
-            } else if (name.endsWith('.wav') || name.endsWith('.mp3') || name.endsWith('.ogg')) {
-              trackList.push({ name: entry.name, url: url });
-            }
+          if (name.endsWith('.mp4') || name.endsWith('.webm') || name.endsWith('.mov')) {
+            videoUrl = url;
+          } else if (name.endsWith('.pdf')) {
+            pdfUrl = url;
+          } else if (name.endsWith('.wav') || name.endsWith('.mp3') || name.endsWith('.ogg')) {
+            trackList.push({ name: file.name, url: url });
           }
         }
       } 
@@ -196,13 +203,13 @@ function MixerView({ song, onBack }) {
           if (master.duration && duration === 0) {
             setDuration(master.duration);
           }
-          // Vigia a sincronia a cada 200ms
+          // Vigia a sincronia a cada 250ms (syncAllToMaster sempre atualizado via useCallback)
           syncAllToMaster();
         }
-      }, 200);
+      }, 250);
     }
     return () => clearInterval(interval);
-  }, [isPlaying, duration]);
+  }, [isPlaying, duration, syncAllToMaster]);
 
   const handleSeek = (e) => {
     const time = parseFloat(e.target.value);
@@ -231,7 +238,6 @@ function MixerView({ song, onBack }) {
 
   const togglePlay = () => {
     const newIsPlaying = !isPlaying;
-    setIsPlaying(newIsPlaying);
 
     if (newIsPlaying) {
       // --- DAR PLAY ---
@@ -246,12 +252,16 @@ function MixerView({ song, onBack }) {
       }
 
       // 3. Sincroniza e dá play em TODOS os áudios diretamente
+      //    O TrackItem NÃO controla mais o play/pause — só o MixerView faz isso
       audioRefs.current.forEach(el => {
         el.currentTime = currentMasterTime;
         el.play().catch(e => console.log('Audio play error:', e));
       });
 
-      // 4. Entra em tela cheia
+      // 4. Atualiza estado APÓS iniciar o play para evitar double-trigger no TrackItem
+      setIsPlaying(true);
+
+      // 5. Entra em tela cheia
       if (mediaSectionRef.current) {
         if (mediaSectionRef.current.requestFullscreen) {
           mediaSectionRef.current.requestFullscreen().catch(err => console.log("Erro ao entrar em tela cheia", err));
@@ -263,6 +273,7 @@ function MixerView({ song, onBack }) {
       // --- PAUSAR ---
       if (videoRef.current) videoRef.current.pause();
       audioRefs.current.forEach(el => el.pause());
+      setIsPlaying(false);
 
       // Sai da tela cheia
       if (document.fullscreenElement) {
@@ -424,7 +435,18 @@ function MixerView({ song, onBack }) {
 
         {/* Metade Direita: Vídeo ou PDF */}
         <div className="video-section" ref={mediaSectionRef}>
-          <div style={{ width: '100%', height: '100%', display: activeMedia === 'video' ? 'block' : 'none' }}>
+          {/*
+            CORREÇÃO CRÍTICA: Usar visibility+position em vez de display:none.
+            display:none faz o browser suspender/throttle o elemento de vídeo,
+            causando drift de tempo quando você volta para ele.
+            Com visibility:hidden o vídeo continua rodando em background sem atrasar.
+          */}
+          <div style={{
+            width: '100%', height: '100%',
+            position: 'absolute', top: 0, left: 0,
+            visibility: activeMedia === 'video' ? 'visible' : 'hidden',
+            pointerEvents: activeMedia === 'video' ? 'auto' : 'none',
+          }}>
             {videoFile ? (
               <video 
                 ref={videoRef}
@@ -446,15 +468,34 @@ function MixerView({ song, onBack }) {
             )}
           </div>
 
-          <div style={{ width: '100%', height: '100%', display: activeMedia === 'pdf' ? 'block' : 'none' }}>
+          <div style={{
+            width: '100%', height: '100%',
+            position: 'absolute', top: 0, left: 0,
+            visibility: activeMedia === 'pdf' ? 'visible' : 'hidden',
+            pointerEvents: activeMedia === 'pdf' ? 'auto' : 'none',
+            overflowY: 'auto',
+            backgroundColor: '#fff'
+          }}>
             {pdfFile ? (
-              <iframe 
-                src={pdfFile.startsWith('blob:') 
-                  ? `${pdfFile}#toolbar=0&navpanes=0&scrollbar=0&view=Fit` 
-                  : `https://docs.google.com/viewer?url=${encodeURIComponent(window.location.origin + pdfFile)}&embedded=true`}
-                style={{ width: '100%', height: '100%', border: 'none', backgroundColor: '#fff', display: 'block' }}
-                title="Partitura"
-              />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px' }}>
+                <Document
+                  file={pdfFile}
+                  onLoadSuccess={(doc) => setNumPdfPages(doc.numPages)}
+                  loading={<p style={{ color: '#000', margin: '20px' }}>Carregando partitura...</p>}
+                  error={<p style={{ color: 'red', margin: '20px' }}>Erro ao carregar partitura. Tente novamente.</p>}
+                >
+                  {Array.from(new Array(numPdfPages || 0), (el, index) => (
+                    <div key={`page_${index + 1}`} style={{ marginBottom: '20px', boxShadow: '0 4px 15px rgba(0,0,0,0.15)' }}>
+                      <Page 
+                        pageNumber={index + 1} 
+                        renderTextLayer={false}
+                        renderAnnotationLayer={false}
+                        width={Math.min(window.innerWidth - 40, 800)}
+                      />
+                    </div>
+                  ))}
+                </Document>
+              </div>
             ) : (
               <div className="empty-state" style={{color: 'var(--text-muted)', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
                 <p>Nenhuma partitura disponível.</p>
@@ -474,9 +515,10 @@ function MixerView({ song, onBack }) {
               <button 
                 className="btn-secondary float-btn" 
                 onClick={() => {
-                  // Resincrona todas as tracks antes de trocar a visualização
-                  syncAllToMaster();
-                  setActiveMedia(activeMedia === 'video' ? 'pdf' : 'video');
+                  // Troca a visualização e resincrona com delay
+                  // O delay garante que o browser reative o elemento antes de ajustar o tempo
+                  setActiveMedia(prev => prev === 'video' ? 'pdf' : 'video');
+                  setTimeout(() => syncAllToMaster(), 100);
                 }}
               >
                 {activeMedia === 'video' ? '📄 Partitura' : '🎬 Vídeo'}

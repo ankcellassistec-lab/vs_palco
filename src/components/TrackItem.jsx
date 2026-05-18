@@ -7,58 +7,26 @@ function TrackItem({ track, isPlaying, onEnded, onLoaded, onRef, isSoloed, isAny
   const [isMuted, setIsMuted] = useState(false);
   const audioRef = useRef(null);
 
+  const [isReady, setIsReady] = useState(false);
+
+  // Passa a referência do áudio para o Mixer
   useEffect(() => {
-    let objectUrl = null;
-    let isMounted = true;
-
-    const loadFile = async () => {
-      try {
-        // Adiciona um timeout de 15 segundos para não travar o app
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-        const response = await fetch(track.url, { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
-        const blob = await response.blob();
-        if (!isMounted) return;
-
-        objectUrl = URL.createObjectURL(blob);
-        setAudioUrl(objectUrl);
-      } catch (e) {
-        console.error("Erro ao pré-carregar track:", track.name, e);
-      } finally {
-        if (isMounted && onLoaded) onLoaded();
-      }
-    };
-
-    loadFile();
-
-    return () => {
-      isMounted = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [track.url]);
-
-  // Passa a referência do áudio para o Mixer assim que estiver pronto
-  useEffect(() => {
-    if (audioUrl && audioRef.current && onRef) {
+    if (audioRef.current && onRef) {
       onRef(audioRef.current);
     }
-  }, [audioUrl, onRef]);
+  }, [onRef]);
 
-  // Sincroniza o play/pause com o Mixer
-  useEffect(() => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.play().catch(e => console.log('Autoplay prevent:', e));
-      } else {
-        audioRef.current.pause();
-      }
+  const handleLoaded = () => {
+    if (!isReady) {
+      setIsReady(true);
+      if (onLoaded) onLoaded();
     }
-  }, [isPlaying]);
+  };
+
+  // NOTA: O play/pause NÃO é controlado aqui.
+  // O MixerView chama .play()/.pause() diretamente via audioRefs para
+  // garantir sincronização precisa de tempo. Controlar aqui também
+  // causaria double-play e race condition de timing.
 
   // Lógica de Mute Efetivo (Solo)
   // Se houver algum Solo ativo, apenas as pistas em Solo tocam.
@@ -77,7 +45,17 @@ function TrackItem({ track, isPlaying, onEnded, onLoaded, onRef, isSoloed, isAny
 
   return (
     <div className="track-item glass-panel">
-      {audioUrl && <audio ref={audioRef} src={audioUrl} preload="auto" onEnded={onEnded} />}
+      <audio 
+        ref={audioRef} 
+        src={track.url} 
+        preload="auto" 
+        onEnded={onEnded} 
+        onLoadedMetadata={handleLoaded}
+        onError={(e) => {
+          console.error("Erro no audio", track.name, e);
+          handleLoaded(); // Evita travar a tela de loading se uma pista falhar
+        }}
+      />
       
       <div className="track-info">
         <span className="track-name">{displayName}</span>
